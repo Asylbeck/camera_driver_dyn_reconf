@@ -40,7 +40,6 @@ This is done to make sure that the USB FS buffering size is sufficient for high 
 
 Put `echo 0 > /sys/module/usbcore/parameters/usbfs_memory_mb` into `/etc/rc.local`
 
-Or
 
 *Apply to current shell:*
 
