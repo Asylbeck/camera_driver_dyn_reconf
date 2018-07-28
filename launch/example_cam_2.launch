@@ -6,6 +6,6 @@
 	<param name="frame_id"        type="string" value="0"        />
 	<param name="num_cams_in_bus" type="int"    value="1"        />
 	<param name="bw_safetyratio"  type="double" value="1.0"      />
-        <rosparam command="load" file="$(find ximea_ros_cam)/config/example_cam_config.yaml" />
+        <rosparam command="load" file="$(find ximea_ros_cam)/config/example_cam_config_2.yaml" />
     </node>
 </launch>

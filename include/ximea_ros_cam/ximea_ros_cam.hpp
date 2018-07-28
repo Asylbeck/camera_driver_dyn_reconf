@@ -94,6 +94,7 @@ class XimeaROSCam : public nodelet::Nodelet {
     // Camera params and Functions
     void initCam();
     void openCam();
+    void setDynConfigParams();
     static std::map<std::string, int> ImgFormatMap;
     static std::map<std::string, int> BytesPerPixelMap;
     static std::map<std::string, std::string> ImgEncodingMap;

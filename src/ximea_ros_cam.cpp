@@ -95,7 +95,7 @@ void XimeaROSCam::onInit() {
 
 // initNodeHandles() - initialize the private/public node handles
 void XimeaROSCam::initDynamicReconfig(ros::NodeHandle n){
-    this->cfg_srv_.setCallback(
+    this->srv_.setCallback(
           boost::bind(&XimeaROSCam::ReconfigCb, this, _1, _2));
     (void)n;
 }
@@ -563,7 +563,6 @@ void XimeaROSCam::frameCaptureCb() {
     // Acquisition started
     if (this->is_active_) {
         ROS_INFO("Capturing image...");
-
         // Acquire image
         xi_stat = xiGetImage(this->xi_h_,
                              this->cam_img_cap_timeout_,
@@ -717,10 +716,71 @@ void XimeaROSCam::triggerCb(const std_msgs::Empty::ConstPtr& msg) {
     // To avoid warnings
     (void)msg;
 }
- void XimeaROSCam::ReconfigCb(ximea_ros_camConfig& config, uint32_t level){
+void XimeaROSCam::ReconfigCb(ximea_ros_camConfig& config, uint32_t level){
     // Set new configuration
+    ROS_INFO("IN RECONFIG CB");
     this->cfg_ = config;
+    this->cam_exposure_time_=this->cfg_.xposure_time;
+    this->cam_white_balance_mode_= this->cfg_.white_balance_set;
+    this->cam_white_balance_coef_r_ = this->cfg_.red_balance; 
+    this->cam_white_balance_coef_g_ = this->cfg_.green_balance;
+    this->cam_white_balance_coef_b_ = this->cfg_.blue_balance;
+    ROS_INFO_STREAM("NEW EXPOSURE TIME" << this->cfg_.xposure_time);
+    setDynConfigParams();
  }
+
+void XimeaROSCam::setDynConfigParams(){
+	XI_RETURN xi_stat;
+    if (!this->cam_autoexposure_) {
+        xi_stat = xiSetParamInt(this->xi_h_,
+                                XI_PRM_EXPOSURE,
+                                this->cam_exposure_time_);
+        // exposure gain limit
+        xi_stat = xiSetParamFloat(this->xi_h_,
+                                  XI_PRM_GAIN,
+                                  this->cam_manualgain_);
+        //      -- Set auto exposure --
+        } else {
+        // auto exposure
+        xi_stat = xiSetParamInt(this->xi_h_,
+                                XI_PRM_AEAG,
+                                this->cam_autoexposure_);
+        // auto priority
+        xi_stat = xiSetParamFloat(this->xi_h_,
+                                  XI_PRM_EXP_PRIORITY,
+                                  this->cam_autoexposure_priority_);
+        // auto exposure time limit
+        xi_stat = xiSetParamFloat(this->xi_h_,
+                                  XI_PRM_AE_MAX_LIMIT,
+                                  this->cam_autotime_limit_);
+        // auto exposure gain limit
+        xi_stat = xiSetParamFloat(this->xi_h_,
+                                  XI_PRM_AG_MAX_LIMIT,
+                                  this->cam_autogain_limit_);
+        }
+    // setting white balanse
+    if (this->cam_white_balance_mode_ == 2) {
+        ROS_INFO_STREAM("WHITE BALANCE MODE SET TO AUTO.");
+        xi_stat = xiSetParamInt(this->xi_h_, XI_PRM_AUTO_WB, 1);
+    } else if (this->cam_white_balance_mode_ == 1) {
+        ROS_INFO_STREAM("WHITE BALANCE MODE SET TO APPLY COEFFS.");
+        xi_stat = xiSetParamInt(this->xi_h_, XI_PRM_AUTO_WB, 0);
+        xi_stat = xiSetParamFloat(this->xi_h_, XI_PRM_WB_KR,
+                                  this->cam_white_balance_coef_r_);
+        xi_stat = xiSetParamFloat(this->xi_h_, XI_PRM_WB_KG,
+                                  this->cam_white_balance_coef_g_);
+        xi_stat = xiSetParamFloat(this->xi_h_, XI_PRM_WB_KB,
+                                  this->cam_white_balance_coef_b_);
+    } else if (this->cam_white_balance_mode_ == 0) {
+        ROS_INFO_STREAM("WHITE BALANCE MODE SET TO NONE.");
+        xi_stat = xiSetParamInt(this->xi_h_, XI_PRM_AUTO_WB, 0);
+    } else {
+        // should not be here!
+        ROS_INFO_STREAM("WHITE BALANCE MODE IS NOT 0 TO 2!");
+    }
+
+
+}
 
 } // NAMESPACE ximea_ros_cam
 
